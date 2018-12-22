@@ -7,21 +7,23 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using IdentityServer4.Models;
+using IdentityServer4.OpenAdminUI.Core.Contracts;
 using IdentityServer4.OpenAdminUI.Core.Models;
 using IdentityServer4.Stores;
 
 namespace IdentityServer4.OpenAdminUI.Core.Stores
 {
-    public interface IAdminClientStore : IClientStore
+    public interface IAdminClientStore
     {
-        Task<List<Client>> GetClientsAsync();
-        Task<Client> AddClientAsync(Client client);
-        Task<Client> SaveClientAsync(Client client);
-        Task<bool> AddClientScopeAsync(string clientId, string scope);
-        Task<bool> RemoveClientScopeAsync(string clientId, string scope);
-        Task<List<ClientSecret>> GetClientSecretsAsync(string clientId);
-        Task<ClientSecret> AddClientSecretAsync(string clientId, ClientSecret clientSecret);
-        Task<bool> RemoveClientSecretAsync(string clientId, ClientSecret clientSecret);
+        Task<ClientContract> GetClientAsync(int id);
+        Task<List<ClientContract>> GetClientsAsync();
+        Task<ClientContract> AddClientAsync(ClientContract client);
+        Task<ClientContract> SaveClientAsync(ClientContract client);
+        //Task<bool> AddClientScopeAsync(string clientId, string scope);
+        //Task<bool> RemoveClientScopeAsync(string clientId, string scope);
+        //Task<List<ClientSecret>> GetClientSecretsAsync(string clientId);
+        //Task<ClientSecret> AddClientSecretAsync(string clientId, ClientSecret clientSecret);
+        //Task<bool> RemoveClientSecretAsync(string clientId, ClientSecret clientSecret);
 
         //Task<bool> RemoveClientSecretAsync(string clientId, string secret);
         //Task<bool> AddClientRedirectUriAsync(string clientId, Uri uri);

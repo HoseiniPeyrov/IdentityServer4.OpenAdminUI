@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Swashbuckle.AspNetCore.Swagger;
 
 namespace IdentityServer4.OpenAdminUI
 {
@@ -28,7 +29,7 @@ namespace IdentityServer4.OpenAdminUI
 
         public IHostingEnvironment Environment { get; }
 
-        public void ConfigureServices(IServiceCollection services)
+        public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMvc();
 
@@ -40,8 +41,7 @@ namespace IdentityServer4.OpenAdminUI
 
             #region IdentityServer
 
-            //var connectionString = Configuration.GetConnectionString("DefaultConnection");
-            const string connectionString = @"Data Source=(LocalDb)\MSSQLLocalDB;database=IdentityServer4.OpenAdminUI;trusted_connection=yes;";
+            var connectionString = Configuration.GetConnectionString("IdentityServer");
             var migrationsAssemblyName = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
 
             void ContextOptionsBuilder(DbContextOptionsBuilder options)
@@ -60,7 +60,8 @@ namespace IdentityServer4.OpenAdminUI
 
             services.AddScoped<IAdminClientStore, AdminClientStore>();
 
-            var identityServerBuilder = services.AddIdentityServer(options =>
+            var identityServerBuilder = services
+                .AddIdentityServer(options =>
                 {
                     options.Events.RaiseErrorEvents = true;
                     options.Events.RaiseInformationEvents = true;
@@ -70,19 +71,30 @@ namespace IdentityServer4.OpenAdminUI
                 .AddConfigurationStore(options => { options.ConfigureDbContext = ContextOptionsBuilder; })
                 .AddOperationalStore(options => { options.ConfigureDbContext = ContextOptionsBuilder; });
             //.AddAspNetIdentity<IdentityUser>();
+            // this is something you will want in production to reduce load on and requests to the DB
+            //.AddConfigurationStoreCache();
 
             if (Environment.IsDevelopment())
-            {
                 identityServerBuilder.AddDeveloperSigningCredential();
-            }
             else
-            {
                 throw new Exception("need to configure key material");
-            }
 
             #endregion
 
-            services.AddAuthentication();
+            services
+                .AddAuthentication();
+
+            services.AddSwaggerGen(c =>
+            {
+                c.SwaggerDoc("v1", new Info
+                {
+                    Title = "Open Admin UI",
+                    Version = "v1"
+                });
+            });
+
+
+            return services.BuildServiceProvider(true);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -98,9 +110,14 @@ namespace IdentityServer4.OpenAdminUI
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            app.UseStaticFiles();
-            app.UseIdentityServer();
-            app.UseMvcWithDefaultRoute();
+            app.UseIdentityServer()
+                .UseSwagger()
+                .UseSwaggerUI(c =>
+                {
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+                })
+                .UseStaticFiles()
+                .UseMvcWithDefaultRoute();
         }
     }
 }

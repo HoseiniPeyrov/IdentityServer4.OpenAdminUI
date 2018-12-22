@@ -15,8 +15,8 @@ namespace IdentityServer4.OpenAdminUI
     {
         public static void EnsureSeedData(IServiceProvider serviceProvider)
         {
-            //var persistedGrantContext = serviceProvider.GetService<PersistedGrantDbContext>();
-            //persistedGrantContext.Database.Migrate();
+            var persistedGrantContext = serviceProvider.GetService<PersistedGrantDbContext>();
+            persistedGrantContext.Database.Migrate();
 
             var configurationContext = serviceProvider.GetService<ConfigurationDbContext>();
             configurationContext.Database.Migrate();

@@ -11,147 +11,140 @@ using System.Threading.Tasks;
 using AutoMapper;
 using IdentityServer4.EntityFramework.Entities;
 using IdentityServer4.EntityFramework.Interfaces;
-using IdentityServer4.EntityFramework.Mappers;
 using IdentityServer4.EntityFramework.Stores;
+using IdentityServer4.OpenAdminUI.Core.Contracts;
 using IdentityServer4.OpenAdminUI.Core.Stores;
-using IdentityServer4.OpenAdminUI.EntityFramework.Extensions;
 using IdentityServer4.OpenAdminUI.EntityFramework.MapperProfiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Client = IdentityServer4.Models.Client;
-using ClientSecret = IdentityServer4.OpenAdminUI.Core.Models.ClientSecret;
 
 namespace IdentityServer4.OpenAdminUI.EntityFramework.Stores
 {
-    public class AdminClientStore : ClientStore, IAdminClientStore
+    public class AdminClientStore : IAdminClientStore
     {
         private readonly IConfigurationDbContext context;
         private readonly IMapper mapper;
 
         public AdminClientStore(IConfigurationDbContext context, ILogger<ClientStore> logger)
-            : base(context, logger)
         {
             this.context = context;
             mapper = new MapperConfiguration(cfg => { cfg.AddProfile<AdminClientMapperProfile>(); }).CreateMapper();
         }
 
-        public async Task<List<Client>> GetClientsAsync()
+        public async Task<ClientContract> GetClientAsync(int id)
         {
-            var clientEntities = await context.Clients
-                .Include(x => x.AllowedGrantTypes)
-                .Include(x => x.RedirectUris)
-                .Include(x => x.PostLogoutRedirectUris)
-                .Include(x => x.AllowedScopes)
-                .Include(x => x.ClientSecrets)
-                .Include(x => x.Claims)
-                .Include(x => x.IdentityProviderRestrictions)
-                .Include(x => x.AllowedCorsOrigins)
-                .Include(x => x.Properties)
-                .ToListAsync();
-
-            return clientEntities.Select(c => c.ToModel()).ToList();
+            var clientEntity = await context.Clients.FirstOrDefaultAsync(c => c.Id == id);
+            return mapper.Map<ClientContract>(clientEntity);
         }
 
-        public async Task<Client> AddClientAsync(Client client)
+        public async Task<List<ClientContract>> GetClientsAsync()
         {
-            var clientEntity = client.ToEntity();
+            var clientEntities = await context.Clients
+                //.Include(x => x.AllowedGrantTypes)
+                //.Include(x => x.RedirectUris)
+                //.Include(x => x.PostLogoutRedirectUris)
+                //.Include(x => x.AllowedScopes)
+                //.Include(x => x.ClientSecrets)
+                //.Include(x => x.Claims)
+                //.Include(x => x.IdentityProviderRestrictions)
+                //.Include(x => x.AllowedCorsOrigins)
+                //.Include(x => x.Properties)
+                .ToListAsync();
+
+            return clientEntities.Select(mapper.Map<ClientContract>).ToList();
+        }
+
+        public async Task<ClientContract> AddClientAsync(ClientContract client)
+        {
+            var clientEntity = mapper.Map<Client>(client);
             var entityEntry = await context.Clients.AddAsync(clientEntity);
             await context.SaveChangesAsync();
 
-            return entityEntry.Entity?.ToModel();
+            return mapper.Map<ClientContract>(entityEntry.Entity);
         }
 
-        public async Task<Client> SaveClientAsync(Client client)
+        public async Task<ClientContract> SaveClientAsync(ClientContract client)
         {
             var clientEntity = await context.Clients
-                .Include(x => x.AllowedGrantTypes)
-                .Include(x => x.RedirectUris)
-                .Include(x => x.PostLogoutRedirectUris)
-                .Include(x => x.AllowedScopes)
-                .Include(x => x.ClientSecrets)
-                .Include(x => x.Claims)
-                .Include(x => x.IdentityProviderRestrictions)
-                .Include(x => x.AllowedCorsOrigins)
-                .Include(x => x.Properties)
                 .FirstOrDefaultAsync(c => c.ClientId == client.ClientId);
 
             mapper.Map(client, clientEntity);
 
             await context.SaveChangesAsync();
 
-            return clientEntity.ToModel();
+            return mapper.Map<ClientContract>(clientEntity);
         }
 
-        public async Task<bool> AddClientScopeAsync(string clientId, string scope)
-        {
-            var client = await GetClientEntityAsync(clientId);
-            if (client == null)
-                return false;
+        //public async Task<bool> AddClientScopeAsync(string clientId, string scope)
+        //{
+        //    var client = await GetClientEntityAsync(clientId);
+        //    if (client == null)
+        //        return false;
 
-            if (!client.AllowedScopes.Any(s => s.Scope.Equals(scope, StringComparison.InvariantCultureIgnoreCase)))
-            {
-                client.AllowedScopes.Add(new ClientScope
-                {
-                    Scope = scope
-                });
+        //    if (!client.AllowedScopes.Any(s => s.Scope.Equals(scope, StringComparison.InvariantCultureIgnoreCase)))
+        //    {
+        //        client.AllowedScopes.Add(new ClientScope
+        //        {
+        //            Scope = scope
+        //        });
 
-                await context.SaveChangesAsync();
-            }
+        //        await context.SaveChangesAsync();
+        //    }
 
-            return true;
-        }
+        //    return true;
+        //}
 
-        public async Task<bool> RemoveClientScopeAsync(string clientId, string scope)
-        {
-            var client = await GetClientEntityAsync(clientId);
-            if (client == null)
-                return false;
+        //public async Task<bool> RemoveClientScopeAsync(string clientId, string scope)
+        //{
+        //    var client = await GetClientEntityAsync(clientId);
+        //    if (client == null)
+        //        return false;
 
-            if (client.AllowedScopes.Any(s => s.Scope.Equals(scope, StringComparison.InvariantCultureIgnoreCase)))
-            {
-                client.AllowedScopes.RemoveAll(s => s.Scope.Equals(scope, StringComparison.InvariantCultureIgnoreCase));
+        //    if (client.AllowedScopes.Any(s => s.Scope.Equals(scope, StringComparison.InvariantCultureIgnoreCase)))
+        //    {
+        //        client.AllowedScopes.RemoveAll(s => s.Scope.Equals(scope, StringComparison.InvariantCultureIgnoreCase));
 
-                await context.SaveChangesAsync();
-            }
+        //        await context.SaveChangesAsync();
+        //    }
 
-            return true;
-        }
+        //    return true;
+        //}
 
-        public async Task<List<ClientSecret>> GetClientSecretsAsync(string clientId)
-        {
-            var client = await GetClientEntityAsync(clientId);
-            return client?.ClientSecrets.Select(cs => cs.ToAdminModel()).ToList();
-        }
+        //public async Task<List<ClientSecret>> GetClientSecretsAsync(string clientId)
+        //{
+        //    var client = await GetClientEntityAsync(clientId);
+        //    return client?.ClientSecrets.Select(cs => cs.ToAdminModel()).ToList();
+        //}
 
-        public async Task<ClientSecret> AddClientSecretAsync(string clientId, ClientSecret clientSecret)
-        {
-            var client = await GetClientEntityAsync(clientId);
-            if (client == null)
-                return null;
+        //public async Task<ClientSecret> AddClientSecretAsync(string clientId, ClientSecret clientSecret)
+        //{
+        //    var client = await GetClientEntityAsync(clientId);
+        //    if (client == null)
+        //        return null;
 
-            var entity = clientSecret?.ToEntity();
-            client.ClientSecrets.Add(entity);
+        //    var entity = clientSecret?.ToEntity();
+        //    client.ClientSecrets.Add(entity);
 
-            await context.SaveChangesAsync();
+        //    await context.SaveChangesAsync();
 
-            return entity?.ToAdminModel();
-        }
+        //    return entity?.ToAdminModel();
+        //}
 
-        public async Task<bool> RemoveClientSecretAsync(string clientId, ClientSecret clientSecret)
-        {
-            var client = await GetClientEntityAsync(clientId);
-            if (client == null || client.ClientSecrets.All(cs => cs.Id != clientSecret.Id))
-                return false;
+        //public async Task<bool> RemoveClientSecretAsync(string clientId, ClientSecret clientSecret)
+        //{
+        //    var client = await GetClientEntityAsync(clientId);
+        //    if (client == null || client.ClientSecrets.All(cs => cs.Id != clientSecret.Id))
+        //        return false;
 
-            client.ClientSecrets.RemoveAll(cs => cs.Id == clientSecret.Id);
-            await context.SaveChangesAsync();
+        //    client.ClientSecrets.RemoveAll(cs => cs.Id == clientSecret.Id);
+        //    await context.SaveChangesAsync();
 
-            return true;
-        }
+        //    return true;
+        //}
 
         #region Private
 
-        private async Task<IdentityServer4.EntityFramework.Entities.Client> GetClientEntityAsync(string clientId)
+        private async Task<Client> GetClientEntityAsync(string clientId)
         {
             return await context.Clients
                 .Include(x => x.AllowedGrantTypes)
