@@ -15,7 +15,7 @@ import App from "./App";
 //// MaterialDashboard plugin
 //import MaterialDashboard from "./material-dashboard";
 
-import Chartist from "chartist";
+//import Chartist from "chartist";
 
 // configure router
 //const router = new VueRouter({
@@ -29,14 +29,14 @@ import Chartist from "chartist";
 //Vue.use(GlobalDirectives);
 //Vue.use(Notifications);
 
-Vue.prototype.$Chartist = Chartist;
+//Vue.prototype.$Chartist = Chartist;
 
 /* eslint-disable no-new */
 new Vue({
   el: "#admin-app",
   render: h => h(App),
   //router,
-  data: {
-    Chartist: Chartist
-  }
+  //data: {
+    //Chartist: Chartist
+  //}
 });
